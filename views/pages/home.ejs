@@ -9,59 +9,6 @@
     </div>
   </div>
 <br /><br /><br /><br />
-
-<!-- Modal HTML -->
-<div id="loginPopup" class="modal fade">
-  <div class="modal-dialog modal-login">
-  <div class="modal-content">
-      <div class="modal-header">
-      <div class="avatar">
-      </div>
-      <h4 class="modal-title">Login</h4>
-      <button
-          type="button"
-          class="close"
-          data-dismiss="modal"
-          aria-hidden="true"
-      >
-          &times;
-      </button>
-      </div>
-      <form action="form_submit.php" method="post">
-      <div class="modal-body">
-      <div class="form-group">
-          <input
-          type="text"
-          class="form-control"
-          name="userame"
-          placeholder="Username"
-          required="required"
-          />
-      </div>
-      <div class="form-group">
-          <input
-          type="password"
-          class="form-control"
-          name="password"
-          placeholder="Password"
-          required="required"
-          />
-      </div>
-      <div class="form-group">
-          <button id="my_submit_button" class="btn btn-primary btn-block login-btn">
-          Login
-          </button>
-      </div>
-      <div class="checkbox mb-3">
-          <label>
-              <input type="checkbox" name="remember-me"> Remember me |
-          </label>
-          <a href="createaccount.html">Create Account</a>
-          </div>
-      </div>
-      </form>
-      </div>
-  </div>
-</div>
+<%- include('../partials/modal') %>
   <br /><br /><br />
 <%- include('../partials/footer') %>

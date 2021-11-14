@@ -1,0 +1,26 @@
+<%- include('../partials/header') %>
+<%- include('../partials/menu') %>
+	<div class="container">
+		<br>
+		<div class="row">
+			<div class="col-4">
+				<div class="card">
+				   <img class="card-img-top" src= "https://www.chocolatebayou.org/wp-content/uploads/No-Image-Person-1536x1536.jpeg" alt="<%username%>">
+				  <div class="card-body mx-auto">
+            <h3><%- username %></h3>
+				  </div>
+				</div>
+			</div>
+			<div class="col-8">
+				<div class="table-responsive">
+					<table class="table">
+						<tr>
+							<th>High Score</th>
+							<td><%- highscore%></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+<%- include('../partials/footer') %>

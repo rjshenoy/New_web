@@ -1,25 +1,16 @@
-var express = require('express'); //Ensure our express framework has been added
+// Load the modules
+var express = require('express'); //Express - a web application framework that provides useful utility functions like 'http'
 var app = express();
-var bodyParser = require('body-parser'); //Ensure our body-parser tool has been added
-app.use(bodyParser.json());              // support json encoded bodies
-app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
-
-//Create Database Connection
+var bodyParser = require('body-parser'); // Body-parser -- a library that provides functions for parsing incoming requests
+app.use(bodyParser.json());              // Support json encoded bodies
+app.use(bodyParser.urlencoded({ extended: true })); // Support encoded bodies
+const axios = require('axios');
+const qs = require('query-string');
+const $ = require('jquery');
+app.use(bodyParser.urlencoded({ extended: false }));
 var pgp = require('pg-promise')();
 
-/**********************
-  Database Connection information
-  host: This defines the ip address of the server hosting our database.
-		We'll be using `db` as this is the name of the postgres container in our
-		docker-compose.yml file. Docker will translate this into the actual ip of the
-		container for us (i.e. can't be access via the Internet).
-  port: This defines what port we can expect to communicate to our database.  We'll use 5432 to talk with PostgreSQL
-  database: This is the name of our specific database.  From our previous lab,
-		we created the football_db database, which holds our football data tables
-  user: This should be left as postgres, the default user account created when PostgreSQL was installed
-  password: This the password for accessing the database. We set this in the
-		docker-compose.yml for now, usually that'd be in a seperate file so you're not pushing your credentials to GitHub :).
-**********************/
+//SQL Setup
 const dbConfig = {
 	host: 'db',
 	port: 5432,
@@ -27,102 +18,143 @@ const dbConfig = {
 	user: 'postgres',
 	password: 'pwd'
 };
-
 var db = pgp(dbConfig);
 
-// set the view engine to ejs
+// Set the view engine to ejs
 app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/'));//This line is necessary for us to use relative paths and access our resources directory
+app.use(express.static(__dirname + '/'));// Set the relative path; makes accessing the resource directory easier
 
+//Temporary User Test
+let users = [
+  {username: 'Mitch',
+  password: 'secret',
+  highscore: '1234'},
+  {username: 'Austin',
+  password: 'piano',
+  highscore: '0'},
+  {username: 'Rahul',
+  password: 'rahuligan',
+  highscore: '989'},
+  {username: 'Kevin',
+  password: 'password123',
+  highscore: '555'}
+];
+var user = users[0];
 
+var log_stat = false;
 
-/*********************************
- Below we'll add the get & post requests which will handle:
-   - Database access
-   - Parse parameters from get (URL) and post (data package)
-   - Render Views - This will decide where the user will go after the get/post request has been processed
+//Login Test
+app.get('/signOut', (req, res) => {
+  res.sendFile(__dirname + '/');
+});
 
- Web Page Requests:
-
-  Login Page:        Provided For your (can ignore this page)
-  Registration Page: Provided For your (can ignore this page)
-  Home Page:
-  		/home - get request (no parameters)
-  				This route will make a single query to the favorite_colors table to retrieve all of the rows of colors
-  				This data will be passed to the home view (pages/home)
-
-  		/home/pick_color - post request (color_message)
-  				This route will be used for reading in a post request from the user which provides the color message for the default color.
-  				We'll be "hard-coding" this to only work with the Default Color Button, which will pass in a color of #FFFFFF (white).
-  				The parameter, color_message, will tell us what message to display for our default color selection.
-  				This route will then render the home page's view (pages/home)
-
-  		/home/pick_color - get request (color)
-  				This route will read in a get request which provides the color (in hex) that the user has selected from the home page.
-  				Next, it will need to handle multiple postgres queries which will:
-  					1. Retrieve all of the color options from the favorite_colors table (same as /home)
-  					2. Retrieve the specific color message for the chosen color
-  				The results for these combined queries will then be passed to the home view (pages/home)
-
-  		/team_stats - get request (no parameters)
-  			This route will require no parameters.  It will require 3 postgres queries which will:
-  				1. Retrieve all of the football games in the Fall 2018 Season
-  				2. Count the number of winning games in the Fall 2018 Season
-  				3. Count the number of lossing games in the Fall 2018 Season
-  			The three query results will then be passed onto the team_stats view (pages/team_stats).
-  			The team_stats view will display all fo the football games for the season, show who won each game,
-  			and show the total number of wins/losses for the season.
-
-  		/player_info - get request (no parameters)
-  			This route will handle a single query to the football_players table which will retrieve the id & name for all of the football players.
-  			Next it will pass this result to the player_info view (pages/player_info), which will use the ids & names to populate the select tag for a form
-************************************/
-
-// login page
+// Home page
 app.get('/', function(req, res) {
-	res.render('pages/login',{
-		local_css:"signin.css",
-		my_title:"Login Page"
-	});
+  res.render('pages/home', {
+    my_title: "Game.io",
+    error: false,
+    message: '',
+    loggedIn: log_stat,
+    username: user.username
+  });
 });
 
-// registration page
-app.get('/register', function(req, res) {
-	res.render('pages/register',{
-		my_title:"Registration Page"
-	});
-});
-
-/*Add your other get/post request handlers below here: */
-
-app.get('/leaderboard', function(req, res) {
-	
-	var leaderboard_scores =  'SELECT * FROM leaderboard;';
-
+//Login
+app.post('/home/pick_color', function(req, res) {
+	var color_hex = req.body.color_hex;
+	var color_name = req.body.color_name;
+	var color_message = req.body.color_message;
+	var insert_statement = "insert into favorite_colors(hex_value, name, color_msg) values($1, $2, $3) on conflict do nothing;";
+	var color_select = 'select * from favorite_colors;';
 	db.task('get-everything', task => {
 		return task.batch([
-			task.any(leaderboard_scores),
+			task.any(insert_statement, [color_hex, color_name, color_message]),
+			task.any(color_select)
 		]);
 	})
-		.then(info => {
-			res.render('pages/home',{
-				my_title: "Leaderboard!!",
-				data: info[0],
-
-			})
+	.then(info => {
+		res.render('pages/home',{
+			my_title: "Home Page",
+			data: info[1],
+			color: color_hex,
+			color_msg: color_message
 		})
-		.catch(error => {
-			// display error message in case an error
-			request.flash('error', err);
-			response.render('pages/home', {
-				my_title: 'Home Page',
-				color_msg: ''
-			})
-		});
-
+	})
+	.catch(error => {
+		// display error message in case an error
+		request.flash('error', err);
+		response.render('pages/home',{
+			my_title: 'Home Page',
+			data: '',
+			color: '',
+			color_msg: ''
+		})
+	});
 });
 
+app.get('/user', function(req, res) {
+  if(log_stat){
+    res.render('pages/user', {
+      my_title: "User Page",
+      error: false,
+      message: '',
+      loggedIn: log_stat,
+      username: user.username,
+      highscore: user.highscore
+    });
+  }
+  else{
+    res.render('pages/home', {
+      my_title: "Game.io",
+      error: true,
+      message: 'Not logged in',
+      loggedIn: log_stat,
+      username: user.username
+    });
+  }
+});
 
+app.get('/about', function(req, res) {
+  res.render('pages/about', {
+    my_title: "About Game.io",
+    error: false,
+    message: '',
+    loggedIn: log_stat,
+    username: user.username
+  });
+});
 
+//Leaderboard
+
+function bubbleSort(tmpArr){
+  arr = tmpArr;
+  console.log(arr);
+  //Outer pass
+  for(let i = 0; i < arr.length; i++){
+      //Inner pass
+      for(let j = 0; j < arr.length - i - 1; j++){
+          //Value comparison using ascending order
+          if(arr[j+1].highscore > arr[j].highscore){
+              [arr[j+1],arr[j]] = [arr[j],arr[j+1]]
+          }
+      }
+  };
+  console.log(arr);
+  return arr;
+};
+
+app.get('/leaderboard', function(req, res) {
+  sort = bubbleSort(users);
+  res.render('pages/leaderboard', {
+    my_title: "Leaderboard",
+    error: false,
+    message: '',
+    loggedIn: log_stat,
+    username: user.username,
+    playerList: sort
+  });
+});
+
+//------------------------------------
 app.listen(3000);
 console.log('3000 is the magic port');
