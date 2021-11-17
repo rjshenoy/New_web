@@ -59,38 +59,6 @@ app.get('/', function(req, res) {
   });
 });
 
-//Login
-app.post('/home/pick_color', function(req, res) {
-	var color_hex = req.body.color_hex;
-	var color_name = req.body.color_name;
-	var color_message = req.body.color_message;
-	var insert_statement = "insert into favorite_colors(hex_value, name, color_msg) values($1, $2, $3) on conflict do nothing;";
-	var color_select = 'select * from favorite_colors;';
-	db.task('get-everything', task => {
-		return task.batch([
-			task.any(insert_statement, [color_hex, color_name, color_message]),
-			task.any(color_select)
-		]);
-	})
-	.then(info => {
-		res.render('pages/home',{
-			my_title: "Home Page",
-			data: info[1],
-			color: color_hex,
-			color_msg: color_message
-		})
-	})
-	.catch(error => {
-		// display error message in case an error
-		request.flash('error', err);
-		response.render('pages/home',{
-			my_title: 'Home Page',
-			data: '',
-			color: '',
-			color_msg: ''
-		})
-	});
-});
 
 app.get('/user', function(req, res) {
   if(log_stat){
@@ -143,17 +111,43 @@ function bubbleSort(tmpArr){
   return arr;
 };
 
+// app.get('/leaderboard', function(req, res) {
+//   sort = bubbleSort(users);
+//   res.render('pages/leaderboard', {
+//     my_title: "Leaderboard",
+//     error: false,
+//     message: '',
+//     loggedIn: log_stat,
+//     username: user.username,
+//     playerList: 
+//   });
+// });
+
+
 app.get('/leaderboard', function(req, res) {
-  sort = bubbleSort(users);
-  res.render('pages/leaderboard', {
-    my_title: "Leaderboard",
-    error: false,
-    message: '',
-    loggedIn: log_stat,
-    username: user.username,
-    playerList: sort
-  });
+  var query = "SELECT * FROM leaderboard_table;";
+  db.task('get-scores', task => {
+      return task.batch([
+          task.any(query),
+      ]);
+  })
+      .then(info => {
+          res.render('pages/leaderboard',{
+              my_title: "Leaderboard",
+              playerList: info,
+              loggedIn: log_stat
+          })
+      })
+      .catch(err => {
+          res.render('pages/home', {
+              my_title: err,
+              data: '',
+              loggedIn: log_stat
+          })
+      });
+
 });
+
 
 //------------------------------------
 app.listen(3000);

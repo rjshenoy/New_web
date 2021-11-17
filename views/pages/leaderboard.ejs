@@ -3,7 +3,7 @@
 <div class="container">
 	<br>
 	<div class="jumbotron">
-	  <h1 class="display-4">Leaderboard</h1>
+	  <h1 class="display-4"><%= my_title%></h1>
 	</div>
 	
 	<table class="table table-bordered" id="stats_table">
@@ -16,7 +16,7 @@
 			<tr>
                 <td><%= i+1 %>. </td>
 				<td><%= playerList[i]["username"] %></td>
-				<td><%= playerList[i]["highscore"] %></td>
+				<td><%= playerList[i]["score"] %></td>
 			</tr>
 		<% } %>
 	</table>

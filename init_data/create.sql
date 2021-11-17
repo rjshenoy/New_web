@@ -37,3 +37,17 @@ CREATE TABLE IF NOT EXISTS 5guys_user_database.character_Toolbox (
     toolboxID INT NOT NULL PRIMARY KEY,
     abilityCount INT
 );
+
+CREATE TABLE IF NOT EXISTS 5guys_user_database.leaderboard_final (
+
+    username       VARCHAR(20)  NOT NULL DEFAULT 'player',
+    score   BIGINT NOT NULL DEFAULT 0  
+
+);
+
+INSERT INTO 5guys_user_database.leaderboard_final VALUES ('Rahul Shenoy', 500);
+INSERT INTO 5guys_user_database.leaderboard_final VALUES ('Rahul Shenoy', 204);
+INSERT INTO 5guys_user_database.leaderboard_final VALUES ('Rahul Shenoy', 345);
+INSERT INTO 5guys_user_database.leaderboard_final VALUES ('Rahul Shenoy', 128);
+
+CREATE VIEW leaderboard_table AS SELECT * FROM 5guys_user_database.leaderboard_final ORDER BY DESC;
