@@ -1,5 +1,8 @@
 // Load the modules
 var express = require('express'); //Express - a web application framework that provides useful utility functions like 'http'
+var session = require('express-session');
+var psqlSesh = require('connect-pg-simple')(session);
+const pg = require('pg');
 var app = express();
 var bodyParser = require('body-parser'); // Body-parser -- a library that provides functions for parsing incoming requests
 app.use(bodyParser.json());              // Support json encoded bodies
@@ -41,12 +44,10 @@ let users = [
 ];
 var user = users[0];
 
-var log_stat = false;
+var log_stat = true;
 
-//Login Test
-app.get('/signOut', (req, res) => {
-  res.sendFile(__dirname + '/');
-});
+//Session info
+
 
 // Home page
 app.get('/', function(req, res) {
@@ -93,43 +94,10 @@ app.get('/about', function(req, res) {
 });
 
 //Leaderboard
-
-function bubbleSort(tmpArr){
-  arr = tmpArr;
-  console.log(arr);
-  //Outer pass
-  for(let i = 0; i < arr.length; i++){
-      //Inner pass
-      for(let j = 0; j < arr.length - i - 1; j++){
-          //Value comparison using ascending order
-          if(arr[j+1].highscore > arr[j].highscore){
-              [arr[j+1],arr[j]] = [arr[j],arr[j+1]]
-          }
-      }
-  };
-  console.log(arr);
-  return arr;
-};
-
-// app.get('/leaderboard', function(req, res) {
-//   sort = bubbleSort(users);
-//   res.render('pages/leaderboard', {
-//     my_title: "Leaderboard",
-//     error: false,
-//     message: '',
-//     loggedIn: log_stat,
-//     username: user.username,
-//     playerList: 
-//   });
-// });
-
-
 app.get('/leaderboard', function(req, res) {
-  var query = "SELECT * FROM leaderboard_table;";
+  var query = "SELECT * FROM leaderboard_scores ORDER BY score DESC;";
   db.task('get-scores', task => {
-      return task.batch([
-          task.any(query),
-      ]);
+      return task.any(query);
   })
       .then(info => {
           res.render('pages/leaderboard',{
@@ -145,7 +113,6 @@ app.get('/leaderboard', function(req, res) {
               loggedIn: log_stat
           })
       });
-
 });
 
 
