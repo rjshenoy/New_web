@@ -55,7 +55,7 @@ app.use(express.static(__dirname + '/'));// Set the relative path; makes accessi
 
 // var log_stat = false;
 
-//Create Account
+//User Database Interface
 app.post('/register', function(req, res) {
 	var username = req.body.username;
 	var password = req.body.password;
@@ -77,7 +77,6 @@ app.post('/register', function(req, res) {
 		})
 	})
 	.catch(err => {
-		// display error message in case an error
 		req.flash('error', err);
 		res.render('pages/home',{
       my_title: "Game.io",
@@ -89,7 +88,6 @@ app.post('/register', function(req, res) {
 	});
 });
 
-//Login
 app.post('/login', function(req, res) {
 	var username = req.body.username;
 	var password = req.body.password;
@@ -108,10 +106,22 @@ app.post('/login', function(req, res) {
 		res.redirect('/');
 	})
 	.catch(error => {
-		// display error message in case an error
 		console.log('error', error);
 		res.redirect('/');
 	});
+});
+
+app.get('/logout',  function (req, res, next)  {
+  if (req.session) {
+    req.session.destroy(function (err) {
+      if(err) {
+        return next(err);
+      }
+      else{
+        return res.redirect('/');
+      }
+    });
+  }
 });
 
 // Home page
