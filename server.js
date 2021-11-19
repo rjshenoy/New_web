@@ -3,7 +3,6 @@ var express = require('express'); //Express - a web application framework that p
 var session = require('express-session');
 var psqlSesh = require('connect-pg-simple')(session);
 const pg = require('pg');
-const cors = require("cors");
 const cookieParser = require("cookie-parser");
 var app = express();
 var bodyParser = require('body-parser'); // Body-parser -- a library that provides functions for parsing incoming requests
@@ -15,28 +14,13 @@ const $ = require('jquery');
 app.use(bodyParser.urlencoded({ extended: false }));
 var pgp = require('pg-promise')();
 
-app.use(express.json());
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST"],
-    credentials: true,
-  })
-);
-app.use(cookieParser());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-app.use(
-  session({
-    key: "userId",
-    secret: "five_guys_shhhhh",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      expires: 60 * 60 * 24 * 30,
-    },
-  })
-);
+app.use(session({
+	secret: 'five_guys_super_secret1234five',
+	resave: true,
+	saveUninitialized: true
+}));
+app.use(bodyParser.urlencoded({extended : true}));
+app.use(bodyParser.json());
 
 //SQL Setup
 const dbConfig = {
@@ -71,17 +55,69 @@ var user = users[0];
 
 var log_stat = false;
 
-//Session info
-
-
 //Create Account
-app.post("/register", (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
-  const score = '0';
-  db.query("INSERT INTO user_base(username,score,password) VALUES ("+username+","+score+","+password+");")
-  .then(r => console.log(r))
-  .catch(e => console.log(e))
+app.post('/register', function(req, res) {
+	var username = req.body.username;
+	var password = req.body.password;
+  var insert_statement = 'INSERT INTO user_base VALUES ($1,$2,$3);';
+	db.task('create-user', task => {
+		return task.batch([
+			task.any(insert_statement, [username, 0, password]),
+		]);
+	})
+	.then(info => {
+		res.render('pages/home',{
+      my_title: "Game.io",
+      error: false,
+      message: 'Account Created! You can now log in!',
+      loggedIn: req.session.loggedin,
+      username: req.session.username
+		})
+	})
+	.catch(error => {
+		// display error message in case an error
+		req.flash('error', err);
+		res.render('pages/home',{
+      my_title: "Game.io",
+      error: true,
+      message: 'Account Not Created! '+err,
+      loggedIn: req.session.loggedin,
+      username: req.session.username
+		})
+	});
+});
+
+//Login
+app.post('/login', function(req, res) {
+	var username = req.body.username;
+	var password = req.body.password;
+	var select_statement = 'SELECT * FROM user_base WHERE username = $1 AND password = $2';
+	db.task('login', task => {
+		return task.batch([
+			task.any(select_statement, [username, password]),
+		]);
+	})
+	.then(info => {
+    console.log(req.session);
+		res.render('pages/home',{
+      my_title: "Game.io",
+      error: false,
+      message: 'Logged In!',
+      loggedIn: req.session.loggedin,
+      username: req.session.username
+		})
+	})
+	.catch(error => {
+		// display error message in case an error
+		console.log('error', err);
+		res.render('pages/home',{
+      my_title: "Game.io",
+      error: false,
+      message: 'Incorrect username/password',
+      loggedIn: req.session.loggedin,
+      username: req.session.username
+		})
+	});
 });
 
 // Home page
@@ -90,56 +126,20 @@ app.get('/', function(req, res) {
     my_title: "Game.io",
     error: false,
     message: '',
-    loggedIn: log_stat,
-    username: user.username
+    loggedIn: req.session.loggedin,
+    username: req.session.username
   });
 });
 
-app.get("/login", (req, res) => {
-  if (req.session.username) {
-    res.send({ loggedIn: true, user: req.session.username });
-  } else {
-    res.send({ loggedIn: false });
-  }
-});
-
-app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const password = req.body.password;
-
-  db.query(
-    "SELECT * FROM user_base WHERE username = ?;",
-    username,
-    (err, result) => {
-      if (err) {
-        res.send({ err: err });
-      }
-
-      if (result.length > 0) {
-        password.localeCompare( result[0].password, (err, res) => {
-          if (res) {
-            req.session.username = result;
-            console.log(req.session.username);
-            res.send(result);
-          } else {
-            res.send({ message: "Wrong username/password combination!" });
-          }
-        });
-      } else {
-        res.send({ message: "User doesn't exist" });
-      }
-    }
-  );
-});
 app.get('/user', function(req, res) {
-  if(log_stat){
+  if(req.session.loggedin){
     res.render('pages/user', {
       my_title: "User Page",
       error: false,
       message: '',
-      loggedIn: log_stat,
-      username: user.username,
-      highscore: user.highscore
+      loggedIn: req.session.loggedin,
+      username: req.session.username,
+      highscore: req.session.highscore
     });
   }
   else{
@@ -147,8 +147,8 @@ app.get('/user', function(req, res) {
       my_title: "Game.io",
       error: true,
       message: 'Not logged in',
-      loggedIn: log_stat,
-      username: user.username
+      loggedIn: req.session.loggedin,
+      username: req.session.username
     });
   }
 });
@@ -158,8 +158,8 @@ app.get('/about', function(req, res) {
     my_title: "About Game.io",
     error: false,
     message: '',
-    loggedIn: log_stat,
-    username: user.username
+    loggedIn: req.session.loggedin,
+    username: req.session.username
   });
 });
 
@@ -173,16 +173,16 @@ app.get('/leaderboard', function(req, res) {
           res.render('pages/leaderboard',{
               my_title: "Leaderboard",
               playerList: info,
-              loggedIn: log_stat,
-              username: user.username
+              loggedIn: req.session.loggedin,
+              username: req.session.username
           })
       })
       .catch(err => {
           res.render('pages/home', {
               my_title: err,
               data: '',
-              loggedIn: log_stat,
-              username: user.username
+              loggedIn: req.session.loggedin,
+              username: req.session.username
           })
       });
 });
