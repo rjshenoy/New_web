@@ -3,6 +3,8 @@ var express = require('express'); //Express - a web application framework that p
 var session = require('express-session');
 var psqlSesh = require('connect-pg-simple')(session);
 const pg = require('pg');
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
 var app = express();
 var bodyParser = require('body-parser'); // Body-parser -- a library that provides functions for parsing incoming requests
 app.use(bodyParser.json());              // Support json encoded bodies
@@ -12,6 +14,29 @@ const qs = require('query-string');
 const $ = require('jquery');
 app.use(bodyParser.urlencoded({ extended: false }));
 var pgp = require('pg-promise')();
+
+app.use(express.json());
+app.use(
+  cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(
+  session({
+    key: "userId",
+    secret: "five_guys_shhhhh",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      expires: 60 * 60 * 24 * 30,
+    },
+  })
+);
 
 //SQL Setup
 const dbConfig = {
@@ -44,10 +69,20 @@ let users = [
 ];
 var user = users[0];
 
-var log_stat = true;
+var log_stat = false;
 
 //Session info
 
+
+//Create Account
+app.post("/register", (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+  const score = '0';
+  db.query("INSERT INTO user_base(username,score,password) VALUES ("+username+","+score+","+password+");")
+  .then(r => console.log(r))
+  .catch(e => console.log(e))
+});
 
 // Home page
 app.get('/', function(req, res) {
@@ -60,7 +95,42 @@ app.get('/', function(req, res) {
   });
 });
 
+app.get("/login", (req, res) => {
+  if (req.session.username) {
+    res.send({ loggedIn: true, user: req.session.username });
+  } else {
+    res.send({ loggedIn: false });
+  }
+});
 
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.query(
+    "SELECT * FROM user_base WHERE username = ?;",
+    username,
+    (err, result) => {
+      if (err) {
+        res.send({ err: err });
+      }
+
+      if (result.length > 0) {
+        password.localeCompare( result[0].password, (err, res) => {
+          if (res) {
+            req.session.username = result;
+            console.log(req.session.username);
+            res.send(result);
+          } else {
+            res.send({ message: "Wrong username/password combination!" });
+          }
+        });
+      } else {
+        res.send({ message: "User doesn't exist" });
+      }
+    }
+  );
+});
 app.get('/user', function(req, res) {
   if(log_stat){
     res.render('pages/user', {
@@ -95,7 +165,7 @@ app.get('/about', function(req, res) {
 
 //Leaderboard
 app.get('/leaderboard', function(req, res) {
-  var query = "SELECT * FROM leaderboard_scores ORDER BY score DESC;";
+  var query = "SELECT * FROM user_base ORDER BY score DESC;";
   db.task('get-scores', task => {
       return task.any(query);
   })
@@ -103,14 +173,16 @@ app.get('/leaderboard', function(req, res) {
           res.render('pages/leaderboard',{
               my_title: "Leaderboard",
               playerList: info,
-              loggedIn: log_stat
+              loggedIn: log_stat,
+              username: user.username
           })
       })
       .catch(err => {
           res.render('pages/home', {
               my_title: err,
               data: '',
-              loggedIn: log_stat
+              loggedIn: log_stat,
+              username: user.username
           })
       });
 });

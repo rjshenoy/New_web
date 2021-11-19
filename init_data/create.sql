@@ -38,16 +38,15 @@ CREATE TABLE IF NOT EXISTS 5guys_user_database.character_Toolbox (
     abilityCount INT
 );
 
-CREATE TABLE IF NOT EXISTS leaderboard_scores (
+CREATE TABLE IF NOT EXISTS user_base (
 
-    username       VARCHAR(20)  NOT NULL DEFAULT 'player',
-    score   BIGINT NOT NULL DEFAULT 0  
+    username VARCHAR(20)  NOT NULL DEFAULT 'player',
+    score    BIGINT NOT NULL DEFAULT 0,
+    password VARCHAR(20)
 
 );
 
-INSERT INTO leaderboard_scores VALUES ('Rahul', 500);
-INSERT INTO leaderboard_scores VALUES ('Mitch', 204);
-INSERT INTO leaderboard_scores VALUES ('Austin', 345);
-INSERT INTO leaderboard_scores VALUES ('Kevin', 128);
-
-CREATE VIEW leaderboard_table AS SELECT * FROM 5guys_user_database.leaderboard_final ORDER BY DESC;
+INSERT INTO user_base VALUES ('Rahul', 500, 'weakpassword');
+INSERT INTO user_base VALUES ('Mitch', 204, 'weakerpassword');
+INSERT INTO user_base VALUES ('Austin', 345, 'str0ngpa55w0rd');
+INSERT INTO user_base VALUES ('Kevin', 128, 'niveK!');
