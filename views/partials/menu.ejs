@@ -1,7 +1,7 @@
 <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
-	<h5 class="my-0 mr-md-auto font-weight-normal"><a href="/">Game.io</a></h5>
+	<h5 class="my-0 mr-md-auto font-weight-normal"><a href="/">Ice and Fire</a></h5>
 	<nav class="my-2 my-md-0 mr-md-3">
-		<a class="p-2 text-dark" href="#">Download</a>
+		<a class="p-2 text-dark" href="#">Play Now!</a>
 		<a class="p-2 text-dark" href="/leaderboard">Leaderboard</a>
 	  <a class="p-2 text-dark" href="/about">About</a>
 	</nav>
@@ -14,9 +14,18 @@
 			</div>
 		</div>
     <% } else {%>
-		<a class="btn btn-outline-primary" href="#loginPopup" data-toggle="modal" onclick = "loginPage()">Login</a>
+		<a class="btn btn-outline-primary" href="#loginPopup" data-toggle="modal" onclick="loginPage()">Login</a>
 	<% } %>
 </div>
+<% if(message) { %>
+	<div class="container-lg" style="margin-top: 2%;">
+		<% if (error) { %>
+		<div class="alert alert-danger"><%= message %></div>
+		<% } else { %>
+		<div class="alert alert-success"><%= message %></div>
+		<% } %>
+	</div>
+<% } %>
 
 <script>
 	$(document).ready(function(){
@@ -27,18 +36,10 @@
 <script>
 	//Login/Registration
 	  const loginHTML = '<div class="modal-dialog modal-login"><div class=modal-content><div class=modal-header><h4 class=modal-title>Login</h4><button class=close aria-hidden=true data-dismiss=modal type=button>×</button></div><form action="/login" method=post><div class=modal-body><div class=form-group><input name=username class=form-control placeholder=Username required></div><div class=form-group><input name=password class=form-control placeholder=Password required type=password></div><div class=form-group><button class="btn btn-block btn-primary login-btn"id=my_submit_button>Login</button></div><div class="checkbox mb-3"><label><input name=remember-me type=checkbox> Remember me |</label> <a href=# onclick=registerPage()>Create Account</a></div></div></form></div></div>';
-
-	  const registerHTML = '<div class="modal-dialog modal-login">'
-	  +'<div class="modal-content"><div class="modal-header"><h4 class="modal-title">Create Account</h4>'
-	  +'<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times</button></div>'
-	  +'<form action="/register" method="post"><div class="modal-body"><div class="form-group">'
-	  +'<input type="text"class="form-control" name="username" placeholder="Username" required="required"/>'
-	  +'</div><div class="form-group"><input type="password" class="form-control" name="password" placeholder="Password"required="required"/>'
-	  +'</div>'
-	  +'<div class="form-group"><button id="my_submit_button" class="btn btn-primary btn-block login-btn">'
-	  +' Create Account</button></div></div></form></div></div>';
+	  const registerHTML = '<div class="modal-dialog modal-login"><div class=modal-content><div class=modal-header><h4 class=modal-title>Create Account</h4><button class=close aria-hidden=true data-dismiss=modal type=button>×</button></div><form action=/register method=post><div class=modal-body><div class=form-group><input class=form-control name=username placeholder=Username required></div><div class=form-group><input class=form-control name=password placeholder=Password required id=psw type=password></div><div class=form-group><input class=form-control name=confPassword placeholder="Confirm Password"required id=cpsw type=password></div><div class=form-group><button class="btn btn-block btn-primary login-btn"disabled id=my_submit_button>Sign Up</button></div></div></form><div class=modal-footer><div id=message style=display:block><h3>Password must contain the following:</h3><p class=invalid id=letter>A <b>lowercase</b> letter<p class=invalid id=capital>A <b>capital (uppercase)</b> letter<p class=invalid id=number>A <b>number</b><p class=invalid id=length>Minimum <b>8 characters</b><p class=invalid id=match>Password and Confirm Password Match</div></div></div></div>';
 	  function registerPage(){
 		  document.getElementById('loginPopup').innerHTML = registerHTML;
+		  runPasswordCheck();
 	  }
 	  function loginPage(){
 		  document.getElementById('loginPopup').innerHTML = loginHTML;

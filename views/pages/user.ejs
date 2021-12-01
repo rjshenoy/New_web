@@ -18,9 +18,68 @@
 							<th>High Score</th>
 							<td><%- highscore%></td>
 						</tr>
+						<tr>
+							<td><a href="#passwordPopup" data-toggle="modal" onclick = "runPasswordCheck()">Change Password</a></td>
+							<td><a href="#deletePopup" data-toggle="modal">Delete Account</a></td>
+						</tr>
 					</table>
 				</div>
 			</div>
 		</div>
 	</div>
+
+<!-- Password Modal -->
+<div id="passwordPopup" class="modal fade">
+	<div class="modal-dialog modal-login">
+		<div class=modal-content>
+			<div class=modal-header>
+				<h4 class=modal-title>Change Password</h4>
+				<button class='close' aria-hidden=true data-dismiss=modal type=button>×</button>
+			</div>
+			<form action="/user/change_password" method="post">
+				<div class=modal-body>
+					<div class="form-group">
+						<input id="ogpswd" type="password" class="form-control" name="ogpassword" placeholder="Current Password" required="required"/>
+					</div>
+					<div class="form-group">
+						<input id="psw" type="password" class="form-control" name="password" placeholder="New Password"required="required"/>
+					</div>
+					<div class="form-group">
+						<input id="cpsw" type="password" class="form-control" name="confPassword" placeholder="Confirm New Password"required="required"/>
+					</div>
+					<div class=form-group>
+						<button class="btn btn-block btn-primary login-btn" disabled id=my_submit_button>Change Password</button>
+					</div>
+				</div>
+			</form>
+			<div class='modal-footer'>
+				<div id='message' style='display:block'>
+					<h3>Password must contain the following:</h3>
+					<p class='invalid' id='letter'>A <b>lowercase</b> letter</p>
+					<p class='invalid' id='capital'>A <b>capital (uppercase)</b> letter</p>
+					<p class='invalid' id='number'>A <b>number</b></p>
+					<p class='invalid' id='length'>Minimum <b>8 characters</b></p>
+					<p class='invalid' id='match'>Password and Confirm Password Match</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Delete Modal -->
+	<div id="deletePopup" class="modal fade">
+		<div class="modal-dialog modal-login">
+			<div class=modal-content>
+				<div class=modal-header>
+					<h4 class=modal-title>Are You Sure?</h4>
+					<button class='close' aria-hidden=true data-dismiss=modal type=button>×</button>
+				</div>
+				<div class=modal-body>
+					<button type="button" class="btn btn-outline-primary" data-dismiss=modal type=button>Go Back</button>
+					<a class="btn btn-danger" href="/delete">Delete</a>
+				</div>
+			</div>
+		</div>
+	</div>
+
 <%- include('../partials/footer') %>

@@ -36,52 +36,42 @@ var db = pgp(dbConfig);
 app.set('view engine', 'ejs');
 app.use(express.static(__dirname + '/'));// Set the relative path; makes accessing the resource directory easier
 
-//Temporary User Test
-// let users = [
-//   {username: 'Mitch',
-//   password: 'secret',
-//   highscore: '1234'},
-//   {username: 'Austin',
-//   password: 'piano',
-//   highscore: '0'},
-//   {username: 'Rahul',
-//   password: 'rahuligan',
-//   highscore: '989'},
-//   {username: 'Kevin',
-//   password: 'password123',
-//   highscore: '555'}
-// ];
-// var user = users[0];
-
-// var log_stat = false;
-
 //User Database Interface
 app.post('/register', function(req, res) {
 	var username = req.body.username;
 	var password = req.body.password;
   var name_check = 'SELECT count(*) FROM user_base WHERE username = $1';
   var insert_statement = 'INSERT INTO user_base VALUES ($1,$2,$3);';
-	db.task('create-user', task => {
+	db.task('check-username', task => {
 		return task.batch([
-      task.any(name_check,[username]),
-			task.any(insert_statement, [username, 0, password])
+      task.any(name_check,[username])
 		]);
 	})
-	.then(info => {
-		res.render('pages/home',{
-      my_title: "Game.io",
-      error: false,
-      message: 'Account Created! You can now log in!',
-      loggedIn: req.session.loggedin,
-      username: req.session.username
-		})
-	})
+	.then(check => {
+    if(check[0][0]['count'] > 0){throw 'Username already exists!';}
+    else{
+      db.task('create-user', task => {
+        return task.batch([
+          task.any(insert_statement,[username,0,password])
+        ]);
+      })
+      .then(info => {
+        res.render('pages/home',{
+          my_title: "Ice and Fire",
+          error: false,
+          message: 'Account Created! You can now log in!',
+          loggedIn: req.session.loggedin,
+          username: req.session.username
+        })
+      })
+    }
+  })
 	.catch(err => {
-		req.flash('error', err);
+		console.log('error', err);
 		res.render('pages/home',{
-      my_title: "Game.io",
+      my_title: "Ice and Fire",
       error: true,
-      message: 'Account Not Created! '+err,
+      message: err,
       loggedIn: req.session.loggedin,
       username: req.session.username
 		})
@@ -102,17 +92,78 @@ app.post('/login', function(req, res) {
       req.session.loggedin = true;
       req.session.username = username;
       req.session.score = info[0][0]['score'];
+      res.render('pages/home',{
+        my_title: "Ice and Fire",
+        error: false,
+        message: 'Login Successful!',
+        loggedIn: req.session.loggedin,
+        username: req.session.username
+      })
     }
-		res.redirect('/');
+		else{throw 'Incorrect Username or Password!';}
 	})
-	.catch(error => {
-		console.log('error', error);
-		res.redirect('/');
+	.catch(err => {
+		console.log('error', err);
+		res.render('pages/home',{
+      my_title: "Ice and Fire",
+      error: true,
+      message: err,
+      loggedIn: req.session.loggedin,
+      username: req.session.username
+		})
 	});
 });
 
-app.get('/logout',  function (req, res, next)  {
-  if (req.session) {
+app.post('/user/change_password', function(req, res) {
+    var ogpassword = req.body.ogpassword;
+    var password = req.body.password;
+    var password_check = 'SELECT * FROM user_base WHERE username = $1 AND password = $2';
+    var change_password = 'UPDATE user_base SET password=$1 WHERE username=$2;';
+    db.task('check-password', task => {
+      return task.batch([
+        task.any(password_check,[req.session.username,ogpassword])
+      ]);
+    })
+    .then(check => {
+      db.task('update-password', task => {
+        return task.batch([
+          task.any(change_password,[password,req.session.username])
+        ]);
+      })
+      .then(info => {
+        if(check[0][0]){
+          res.render('pages/user',{
+            my_title: "Ice and Fire",
+            error: false,
+            message: 'Password Update Successful!',
+            loggedIn: req.session.loggedin,
+            username: req.session.username,
+            highscore: req.session.score
+          });
+        }
+        else{
+          throw 'Incorrect Password!';
+        }
+      })
+      .catch(err => {
+        throw err;
+      });
+    })
+    .catch(err => {
+      console.log('error', err);
+      res.render('pages/user',{
+        my_title: "Ice and Fire",
+        error: true,
+        message: err,
+        loggedIn: req.session.loggedin,
+        username: req.session.username,
+        highscore: req.session.score
+      })
+    });
+  });
+
+app.get('/logout', function (req, res, next)  {
+  if (req.session){
     req.session.destroy(function (err) {
       if(err) {
         return next(err);
@@ -124,10 +175,50 @@ app.get('/logout',  function (req, res, next)  {
   }
 });
 
+app.get('/delete', function(req, res) {
+	var username = req.session.username;
+	var select_statement = 'DELETE FROM user_base WHERE username=$1';
+	db.task('login', task => {
+    return task.batch([
+      task.any(select_statement,[username])
+		]);
+	})
+	.then(info => {
+    if (req.session){
+      req.session.destroy(function (err) {
+        if(err) {
+          throw err;
+        }
+        else{
+          res.render('pages/home', {
+            my_title: 'Fire and Ice',
+            error: false,
+            message: 'Account Successfully Deleted!',
+            loggedIn: false,
+            username: '',
+            highscore: -1
+          });
+        }
+      });
+    }
+	})
+	.catch(error => {
+		console.log('error', error);
+    res.render('pages/user', {
+      my_title: 'Fire and Ice',
+      error: true,
+      message: error,
+      loggedIn: req.session.loggedin,
+      username: req.session.username,
+      highscore: req.session.score
+    });
+	});
+});
+
 // Home page
 app.get('/', function(req, res) {
   res.render('pages/home', {
-    my_title: "Game.io",
+    my_title: "Ice and Fire",
     error: false,
     message: '',
     loggedIn: req.session.loggedin,
@@ -138,7 +229,7 @@ app.get('/', function(req, res) {
 app.get('/user', function(req, res) {
   if(req.session.loggedin){
     res.render('pages/user', {
-      my_title: "User Page",
+      my_title: req.session.username,
       error: false,
       message: '',
       loggedIn: req.session.loggedin,
@@ -147,19 +238,13 @@ app.get('/user', function(req, res) {
     });
   }
   else{
-    res.render('pages/home', {
-      my_title: "Game.io",
-      error: true,
-      message: 'Not logged in',
-      loggedIn: req.session.loggedin,
-      username: req.session.username
-    });
+    res.redirect('/');
   }
 });
 
 app.get('/about', function(req, res) {
   res.render('pages/about', {
-    my_title: "About Game.io",
+    my_title: "About Ice and Fire",
     error: false,
     message: '',
     loggedIn: req.session.loggedin,
@@ -177,6 +262,8 @@ app.get('/leaderboard', function(req, res) {
           res.render('pages/leaderboard',{
               my_title: "Leaderboard",
               playerList: info,
+              error: false,
+              message: '',
               loggedIn: req.session.loggedin,
               username: req.session.username
           })
@@ -184,7 +271,8 @@ app.get('/leaderboard', function(req, res) {
       .catch(err => {
           res.render('pages/home', {
               my_title: err,
-              data: '',
+              error: true,
+              message: err,
               loggedIn: req.session.loggedin,
               username: req.session.username
           })
